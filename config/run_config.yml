@@ -1,0 +1,7 @@
+tech:
+  data_dir: "../data"
+
+data:
+  file: canada_dataset.xls
+  start_year: 1980
+  end_year: 1990
