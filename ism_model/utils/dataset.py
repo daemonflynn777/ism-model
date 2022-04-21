@@ -11,13 +11,12 @@ class Data():
     def __post_init__(self):
         if self.source_file:
             logging.info(f"Data will be loaded from {self.source_file}")
+            self.source_file_format = self.source_file.rsplit(".", 1)[1]
         elif self.dest_file:
             logging.info(f"Data will be saved to {self.dest_file}")
+            self.dest_file_format = self.dest_file.rsplit(".", 1)[1]
         else:
             raise ValueError("No source_file or dest_file was provided")
-
-        self.source_file_format = self.source_file.rsplit(".", 1)[1]
-        self.dest_file_format = self.dest_file.rsplit(".", 1)[1]
 
     def load(self):
         if self.source_file_format == "csv":
