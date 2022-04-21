@@ -9,7 +9,6 @@ from ism_model.utils import Data
 class Model():
     def __init__(self, run_config: str):
         logging.info("Started the ISM model ...")
-        logging.config.dictConfig(cfg.LOG_DICT_CONFIG)
         pass
 
     def load_data(self):
