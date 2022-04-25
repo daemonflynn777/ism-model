@@ -5,3 +5,11 @@ data:
   file: canada_dataset.xls
   start_year: 1980
   end_year: 1990
+
+model:
+  coeffs:
+    alpha: "0;1"
+    beta: "0;1"
+    gamma: "0;1"
+  n_splits: 10
+  n_cores: 4

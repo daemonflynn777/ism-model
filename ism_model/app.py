@@ -6,6 +6,7 @@ import logging.config
 from ism_model.utils.yaml import load_yaml_safe
 from ism_model.utils.dataset import Data
 import ism_model.config as cfg
+from ism_model.model.ism import Model
 
 
 class Pipeline:
@@ -17,6 +18,9 @@ class Pipeline:
 
         self.tech_params = self.params["tech"]
         self.data_params = self.params["data"]
+        self.model_params = self.params["model"]
+
+        self.model = Model()
 
     def load_dataset(self):
         self.dataset = Data(
@@ -27,6 +31,9 @@ class Pipeline:
         ).load()
 
     def run(self):
+        for el in self.model_params["coeffs"]:
+            print(el)
+        self.model.create_params_set(self.model_params["coeffs"], self.model_params["n_splits"])
         self.load_dataset()
         print(self.dataset.head())
 
