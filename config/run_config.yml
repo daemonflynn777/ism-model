@@ -4,7 +4,7 @@ tech:
 data:
   file: canada_dataset.xls
   start_year: 1980
-  end_year: 1990
+  end_year: 2000
 
 model:
   coeffs:
@@ -12,4 +12,4 @@ model:
     beta: "0;1"
     gamma: "0;1"
   n_splits: 10
-  n_cores: 4
+  n_threads: 4

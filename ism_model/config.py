@@ -1,6 +1,7 @@
 import os
 import yaml
 
+YEAR_COL = "Year"
 GDP_COL = "Gross capital formation"
 LABOUR_COL = "Population"
 FUND_COL = ""
