@@ -12,10 +12,11 @@ from ism_model.utils.dataset import Data
 
 
 class Model():
-    def __init__(self, L_0: float):
+    def __init__(self, L_0: float, Y_0: float):
         logging.info("Started the ISM model ...")
 
         self.L_0 = L_0
+        self.Y_0 = Y_0
 
         self.a = 0.0
         self.gamma = 0.0
@@ -34,7 +35,7 @@ class Model():
             ) for param in coeffs
         }
         grid_df = pd.DataFrame(
-            data=np.array(np.meshgrid(*parsed_coeffs.values())).reshape(-1, len(parsed_coeffs)),
+            data=np.vstack(np.meshgrid(*parsed_coeffs.values())).reshape(len(parsed_coeffs), -1).T,
             columns=parsed_coeffs.keys()
         )
         return grid_df

@@ -8,8 +8,11 @@ data:
 
 model:
   coeffs:
-    alpha: "0;1"
-    beta: "0;1"
-    gamma: "0;1"
-  n_splits: 10
+    a: "0.001;1"
+    gamma: "0.001;1"
+    alpha_k: "0.001;1"
+    n: "0.001;5"
+    s: "0.001;1"
+    delta: "0.001;1"
+  n_splits: 5
   n_threads: 4
