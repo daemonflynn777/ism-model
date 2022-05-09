@@ -2,10 +2,13 @@ import os
 import yaml
 
 YEAR_COL = "Year"
-GDP_COL = "Gross capital formation"
+GDP_COL = "Gross Domestic Product (GDP)"
 LABOUR_COL = "Population"
 FUND_COL = ""
 CONSUMPTION_COL = "Final consumption expenditure"
+INVESTMENTS_COL = "Gross capital formation"
+IMPORT_COL = "Imports of goods and services"
+EXPORT_COL = "Exports of goods and services"
 
 LOG_DIR = "logs"
 LOG_NAME = "pipeline.log"

@@ -3,16 +3,14 @@ tech:
 
 data:
   file: canada_dataset.xls
-  start_year: 1980
+  start_year: 1990
   end_year: 2000
 
 model:
   coeffs:
-    a: "0.001;1"
-    gamma: "0.001;1"
-    alpha_k: "0.001;1"
-    n: "0.001;5"
-    s: "0.001;1"
-    delta: "0.001;1"
-  n_splits: 5
-  n_threads: 4
+    a: "0.001;0.999" # coeff from CES GDP function
+    b: "-1;10" # coeff from CES GDP function
+    alpha_k: "0.001;1" # coeff for K_0 = Y_0/alpha_k
+    mu: "0.001;0.999" # capital retirement rate
+  n_splits: 11
+  n_threads: 8
