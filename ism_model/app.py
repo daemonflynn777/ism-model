@@ -107,9 +107,6 @@ class Pipeline:
         return res
 
     def run(self):
-        # for el in self.model_params["coeffs"]:
-        #     print(el)
-        # self.model.create_params_set(self.model_params["coeffs"], self.model_params["n_splits"])
         logging.info("Loading train data")
         self.dataset = self.load_dataset()
         self.dataset = self.dataset[
@@ -127,7 +124,6 @@ class Pipeline:
             "pi_e"
         ]].reset_index(drop=True)
         self.dataset[cfg.LABOUR_COL] *= 0.6
-        print(self.dataset.head(10))
 
         logging.info("Initializing the model")
         self.model = Model(L_0=self.dataset[cfg.LABOUR_COL][0], Y_0=self.dataset[cfg.GDP_COL][0])
@@ -195,13 +191,11 @@ class Pipeline:
             pi_i_list=self.dataset["pi_i preds"],
             Imp_list=self.dataset[cfg.IMPORT_COL]
         )
-        print(sigma_mean)
         delta_mean, delta_std = self.model.calc_delta(
             pi_e_list=self.dataset["pi_e preds"],
             E_list=self.dataset[cfg.EXPORT_COL],
             Y_list=self.dataset[cfg.GDP_COL]
         )
-        print(delta_mean)
         rho_mean, rho_std = self.model.calc_rho(
             pi_i_list=self.dataset["pi_i preds"],
             Imp_list=self.dataset[cfg.IMPORT_COL],
@@ -209,7 +203,6 @@ class Pipeline:
             pi_e_list=self.dataset["pi_e preds"],
             E_list=self.dataset[cfg.EXPORT_COL]
         )
-        print(rho_mean)
         self.model.set_static_params(sigma=sigma_mean, delta=delta_mean, rho=rho_mean)
 
         logging.info("Creating mesh grid for model's params")
@@ -219,27 +212,20 @@ class Pipeline:
         )
 
         logging.info(f"You will be using {self.model_params['n_threads']} cores out of {mp.cpu_count()} available")
-        rows_per_core = self.params_set.shape[0] // self.model_params['n_threads']
-        print(self.params_set.shape[0])
+        logging.info(f"A total of {self.params_set.shape[0]} parameters combinations will be tested")
         cores = self.model_params['n_threads']
-        # params_splitted = (
-        #     self.params_set.iloc[rows_per_core*split:min(rows_per_core*(split+1), self.params_set.shape[0]), :]
-        #     for split in range(cores)
-        # )
         params_splitted = np.array_split(self.params_set, cores)
         pool = mp.Pool(self.model_params['n_threads'])
         results = [pool.apply_async(self.inference, args=(df,)).get() for df in params_splitted]
         pool.close()
         results = np.concatenate(results).reshape(-1, 3)
         results = results[results[:, 2].argsort()]
-        print(results[:5])
         self.params_set["corr_metrics"] = results[:, 0].reshape(-1, )
         self.params_set["MAPE_metrics"] = results[:, 1].reshape(-1, )
         self.params_set = self.params_set[
             (self.params_set["corr_metrics"] >= 0.5) &
             (self.params_set["MAPE_metrics"] <= 0.5)
         ]
-        print(self.params_set.sort_values(by=["MAPE_metrics", "corr_metrics"], ascending=[True, False]).head(15))
         plot_metrics(
             data_x=self.params_set["corr_metrics"].to_list(),
             data_y=self.params_set["MAPE_metrics"].to_list(),
@@ -248,89 +234,6 @@ class Pipeline:
             y_label="MAPE_metrics",
             save_path="img/metrics.jpeg"
         )
-
-        # print(self.params_set.head(16))
-
-        # logging.info(f"Inference will be done using {self.model_params['n_threads']} processes")
-        # Theil_metrics = []
-        # RMSPE_metrics = []
-        # MAPE_metrics = []
-        # plt.figure(figsize=(8, 8))
-        # plt.title('Prediction traces')
-        # for i in tqdm(range(self.params_set.shape[0])):
-        #     Y_preds = []
-        #     K_preds = []
-        #     L_preds = []
-        #     for t in range(self.data_params["end_year"] - self.data_params["start_year"]):
-        #         if t == 0:
-        #             L_t, K_t = self.model.L_0, self.model.Y_0/self.params_set["alpha_k"][i]
-        #             Y_t = self.model.calc_gdp(
-        #                 a=self.params_set["a"][i],
-        #                 K=K_t,
-        #                 L=L_t,
-        #                 # L=self.dataset[cfg.LABOUR_COL][t],
-        #                 gamma=self.params_set["gamma"][i],
-        #                 alpha_k=self.params_set["alpha_k"][i]
-        #             )
-        #             Y_preds.append(Y_t)
-        #             K_preds.append(K_t)
-        #             L_preds.append(L_t)
-        #         else:
-        #             # L_t = self.model.calc_labor(self.params_set["n"][i], t)
-        #             L_t = self.model.calc_labor(n, t)
-        #             K_t = self.model.calc_capital(
-        #                 s=self.params_set["s"][i],
-        #                 Y=Y_preds[-1],
-        #                 delta=self.params_set["delta"][i],
-        #                 # n=self.params_set["n"][i],
-        #                 n=n,
-        #                 K=K_preds[-1]
-        #             )
-        #             Y_t = self.model.calc_gdp(
-        #                 a=self.params_set["a"][i],
-        #                 K=K_t,
-        #                 # L=L_t,
-        #                 L=self.dataset[cfg.LABOUR_COL][t],
-        #                 gamma=self.params_set["gamma"][i],
-        #                 alpha_k=self.params_set["alpha_k"][i]
-        #             )
-        #             Y_preds.append(Y_t)
-        #             K_preds.append(K_t)
-        #             L_preds.append(L_t)
-        #     Y_preds = [el/1e9 for el in Y_preds]
-        #     plt.plot(
-        #         range(self.data_params["end_year"] - self.data_params["start_year"] - 7),
-        #         Y_preds[:-7],
-        #         color='orange',
-        #         alpha=0.15
-        #     )
-        #     Theil_metrics.append(Theil(Y_preds, self.dataset[cfg.GDP_COL]))
-        #     RMSPE_metrics.append(RMSPE(Y_preds, self.dataset[cfg.GDP_COL]))
-        #     MAPE_metrics.append(MAPE(Y_preds, self.dataset[cfg.GDP_COL]))
-        # plt.plot(
-        #     range(self.data_params["end_year"] - self.data_params["start_year"] - 7),
-        #     self.dataset[cfg.GDP_COL][:-7],
-        #     color='red',
-        #     alpha=0.85
-        # )
-        # plt.savefig("img/gdp_preds.jpeg")
-        # plt.figure(figsize=(8, 8))
-        # plt.title('Metrics')
-        # plt.scatter(
-        #     Theil_metrics,
-        #     RMSPE_metrics
-        # )
-        # plt.savefig("img/metrics.jpeg")
-        # self.params_set["Theil_metrics"] = Theil_metrics
-        # self.params_set["MAPE_metrics"] = MAPE_metrics
-
-        # logging.info("Calculated metrics for all combinations of parameters")
-
-        # print(self.params_set.sort_values(
-        #         by=["Theil_metrics", "MAPE_metrics"],
-        #         ascending=[True, True]
-        #     ).head(10)
-        # )
 
         logging.info("Pipeline done!")
 
