@@ -54,19 +54,19 @@ class Pipeline:
             Y_preds = []
             I_preds = []
             E_preds = []
-            K_t = self.dataset[cfg.GDP_COL][0]/df["alpha_k"][ind]
-            K_t_next = self.dataset[cfg.GDP_COL][0]/df["alpha_k"][ind]
-            Y_t = self.dataset[cfg.GDP_COL][0]
+            K_t = self.dataset[cfg.GDP_COL+" const"][0]/df["alpha_k"][ind]
+            K_t_next = self.dataset[cfg.GDP_COL+" const"][0]/df["alpha_k"][ind]
+            Y_t = self.dataset[cfg.GDP_COL+" const"][0]
             for t in range(self.dataset.shape[0]):
                 K_t = K_t_next
                 Y_t = self.model.calc_gdp(
-                    Y_0=self.dataset[cfg.GDP_COL][0],
+                    Y_0=self.dataset[cfg.GDP_COL+" const"][0],
                     a=df["a"][ind],
                     b=df["b"][ind],
                     L=self.dataset[cfg.LABOUR_COL+" preds"][t],
                     L_0=self.dataset[cfg.LABOUR_COL+" preds"][0],
                     K=K_t,
-                    K_0=self.dataset[cfg.GDP_COL][0]/df["alpha_k"][ind]
+                    K_0=self.dataset[cfg.GDP_COL+" const"][0]/df["alpha_k"][ind]
                 )
                 I_t = self.model.calc_import(
                     rho=self.model.rho,
@@ -94,14 +94,14 @@ class Pipeline:
                     K=K_t
                 )
             corr_metrics = [
-                CORR(Y_preds, self.dataset[cfg.GDP_COL].to_list()),
-                CORR(I_preds, self.dataset[cfg.IMPORT_COL].to_list()),
-                CORR(E_preds, self.dataset[cfg.EXPORT_COL].to_list())
+                CORR(Y_preds, self.dataset[cfg.GDP_COL+" const"].to_list()),
+                CORR(I_preds, self.dataset[cfg.IMPORT_COL+" const"].to_list()),
+                CORR(E_preds, self.dataset[cfg.EXPORT_COL+" const"].to_list())
             ]
             mape_metrics = [
-                MAPE(Y_preds, self.dataset[cfg.GDP_COL].to_list()),
-                MAPE(I_preds, self.dataset[cfg.IMPORT_COL].to_list()),
-                MAPE(E_preds, self.dataset[cfg.EXPORT_COL].to_list())
+                MAPE(Y_preds, self.dataset[cfg.GDP_COL+" const"].to_list()),
+                MAPE(I_preds, self.dataset[cfg.IMPORT_COL+" const"].to_list()),
+                MAPE(E_preds, self.dataset[cfg.EXPORT_COL+" const"].to_list())
             ]
             res.append([np.mean(corr_metrics), np.mean(mape_metrics), ind])
         return res
@@ -115,10 +115,14 @@ class Pipeline:
         ]
         self.dataset = self.dataset[[
             cfg.GDP_COL,
+            cfg.GDP_COL+" const",
             cfg.LABOUR_COL,
             cfg.EXPORT_COL,
+            cfg.EXPORT_COL+" const",
             cfg.IMPORT_COL,
+            cfg.IMPORT_COL+" const",
             cfg.INVESTMENTS_COL,
+            cfg.INVESTMENTS_COL+" const",
             "pi_i",
             "pi_j",
             "pi_e"
@@ -227,10 +231,10 @@ class Pipeline:
             (self.params_set["MAPE_metrics"] <= 0.5)
         ]
         plot_metrics(
-            data_x=self.params_set["corr_metrics"].to_list(),
+            data_x=(-1*self.params_set["corr_metrics"]).to_list(),
             data_y=self.params_set["MAPE_metrics"].to_list(),
             title="Metrics",
-            x_label="corr_metrics",
+            x_label="Negative corr_metrics",
             y_label="MAPE_metrics",
             save_path="img/metrics.jpeg"
         )
