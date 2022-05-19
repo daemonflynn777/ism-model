@@ -14,3 +14,4 @@ model:
     mu: "0.001;0.999" # capital retirement rate
   n_splits: 11
   n_threads: 8
+  convex_alpha: 5.0

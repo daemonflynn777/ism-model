@@ -5,6 +5,7 @@ import logging
 import logging.config
 import multiprocessing as mp
 import pandas as pd
+from sklearn import metrics
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 import math
@@ -16,7 +17,7 @@ from ism_model.utils.dataset import Data
 import ism_model.config as cfg
 from ism_model.model.ism import Model
 from ism_model.metrics.metrics import Theil, RMSPE, MAPE, R2, CORR
-from ism_model.visual.plot_2d import plot_time_series, plot_metrics
+from ism_model.visual.plot_2d import plot_time_series, plot_metrics, plot_tube_predictions
 
 
 class Pipeline:
@@ -48,25 +49,38 @@ class Pipeline:
         data["pi_e"] = data["p_e"]/data["p_y"]
         return data
 
-    def inference(self, df: pd.DataFrame) -> List[List[Union[float, int]]]:
+    @staticmethod
+    def save_tube_predictions(data: np.array, name: str) -> None:
+        df = pd.DataFrame(
+            data=data,
+            columns=[str(i) for i in range(data.shape[1])]
+        )
+        df.to_csv(os.path.join("predictions", f"{name}_tube_predictions.csv"), index=False)
+
+    def inference(self, params_df: pd.DataFrame,  # data_df: pd.DataFrame,
+                  return_predictions: bool = False) -> List[List[Union[float, int]]]:
         res = []
-        for ind in df.index:
+        if return_predictions:
+            Y_preds_all = []
+            I_preds_all = []
+            E_preds_all = []
+        for ind in params_df.index:
             Y_preds = []
             I_preds = []
             E_preds = []
-            K_t = self.dataset[cfg.GDP_COL+" const"][0]/df["alpha_k"][ind]
-            K_t_next = self.dataset[cfg.GDP_COL+" const"][0]/df["alpha_k"][ind]
+            K_t = self.dataset[cfg.GDP_COL+" const"][0]/params_df["alpha_k"][ind]
+            K_t_next = self.dataset[cfg.GDP_COL+" const"][0]/params_df["alpha_k"][ind]
             Y_t = self.dataset[cfg.GDP_COL+" const"][0]
             for t in range(self.dataset.shape[0]):
                 K_t = K_t_next
                 Y_t = self.model.calc_gdp(
                     Y_0=self.dataset[cfg.GDP_COL+" const"][0],
-                    a=df["a"][ind],
-                    b=df["b"][ind],
+                    a=params_df["a"][ind],
+                    b=params_df["b"][ind],
                     L=self.dataset[cfg.LABOUR_COL+" preds"][t],
                     L_0=self.dataset[cfg.LABOUR_COL+" preds"][0],
                     K=K_t,
-                    K_0=self.dataset[cfg.GDP_COL+" const"][0]/df["alpha_k"][ind]
+                    K_0=self.dataset[cfg.GDP_COL+" const"][0]/params_df["alpha_k"][ind]
                 )
                 I_t = self.model.calc_import(
                     rho=self.model.rho,
@@ -90,7 +104,7 @@ class Pipeline:
                 E_preds.append(E_t)
                 K_t_next = self.model.calc_capital(
                     J=J_t,
-                    mu=df["mu"][ind],
+                    mu=params_df["mu"][ind],
                     K=K_t
                 )
             corr_metrics = [
@@ -104,6 +118,14 @@ class Pipeline:
                 MAPE(E_preds, self.dataset[cfg.EXPORT_COL+" const"].to_list())
             ]
             res.append([np.mean(corr_metrics), np.mean(mape_metrics), ind])
+            if return_predictions:
+                Y_preds_all.append(Y_preds)
+                I_preds_all.append(I_preds)
+                E_preds_all.append(E_preds)
+        if return_predictions:
+            self.save_tube_predictions(np.array(Y_preds_all), "GDP")
+            self.save_tube_predictions(np.array(I_preds_all), "Import")
+            self.save_tube_predictions(np.array(E_preds_all), "Export")
         return res
 
     def run(self):
@@ -146,7 +168,7 @@ class Pipeline:
         )
 
         logging.info("Fitting import price index")
-        pi_i_preds = self.model.fit_polinominal(self.dataset["pi_i"].to_list(), 5)
+        pi_i_preds = self.model.fit_polinominal(self.dataset["pi_i"].to_list(), 7)
         self.dataset["pi_i preds"] = pi_i_preds
         # a_i, b_i = self.model.fit_exponential(self.dataset["pi_i"].to_list())
         # pi_i_preds = [a_i*math.exp(b_i*t) for t in range(self.dataset.shape[0])]
@@ -160,7 +182,7 @@ class Pipeline:
         )
 
         logging.info("Fitting export price index")
-        pi_e_preds = self.model.fit_polinominal(self.dataset["pi_e"].to_list(), 5)
+        pi_e_preds = self.model.fit_polinominal(self.dataset["pi_e"].to_list(), 7)
         self.dataset["pi_e preds"] = pi_e_preds
         # a_e, b_e = self.model.fit_exponential(self.dataset["pi_e"].to_list())
         # pi_e_preds = [a_e*math.exp(b_e*t) for t in range(self.dataset.shape[0])]
@@ -174,7 +196,7 @@ class Pipeline:
         )
 
         logging.info("Fitting investments price index")
-        pi_j_preds = self.model.fit_polinominal(self.dataset["pi_j"].to_list(), 5)
+        pi_j_preds = self.model.fit_polinominal(self.dataset["pi_j"].to_list(), 7)
         self.dataset["pi_j preds"] = pi_j_preds
         # a_j, b_j = self.model.fit_exponential(self.dataset["pi_j"].to_list())
         # pi_j_preds = [a_j*math.exp(b_j*t) for t in range(self.dataset.shape[0])]
@@ -230,13 +252,58 @@ class Pipeline:
             (self.params_set["corr_metrics"] >= 0.5) &
             (self.params_set["MAPE_metrics"] <= 0.5)
         ]
+        self.params_set["corr_metrics"] = 1 - self.params_set["corr_metrics"]
+        metrics_arr = self.params_set[["corr_metrics", "MAPE_metrics"]].to_numpy().reshape(-1, 2)
+
+        logging.info("Calculating pareto front")
+        pareto_mask = self.model.calc_pareto_front(metrics_arr)
+        self.params_set["pareto_mask"] = pareto_mask
+        pareto_points = self.params_set[self.params_set["pareto_mask"] == True]
+        not_pareto_points = self.params_set[self.params_set["pareto_mask"] == False]
+        # metrics_arr = [(point[0], point[1]) for point in metrics_arr]
+        # shell_arr = np.array(self.model.create_shell(metrics_arr, self.model_params["convex_alpha"]))
         plot_metrics(
-            data_x=(-1*self.params_set["corr_metrics"]).to_list(),
-            data_y=self.params_set["MAPE_metrics"].to_list(),
+            pareto_points_x=pareto_points["corr_metrics"].to_list(),
+            pareto_points_y=pareto_points["MAPE_metrics"].to_list(),
+            not_pareto_points_x=not_pareto_points["corr_metrics"].to_list(),
+            not_pareto_points_y=not_pareto_points["MAPE_metrics"].to_list(),
             title="Metrics",
-            x_label="Negative corr_metrics",
+            x_label="1 - corr_metrics",
             y_label="MAPE_metrics",
             save_path="img/metrics.jpeg"
+        )
+
+        logging.info("Calculating preidctions tube using pareto front")
+        params_splitted = np.array_split(pareto_points, 1)
+        pool = mp.Pool(self.model_params['n_threads'])
+        results = [pool.apply_async(self.inference, args=(df, True, )).get() for df in params_splitted]
+        pool.close()
+        Y_preds = pd.read_csv(os.path.join("predictions", "GDP_tube_predictions.csv"))
+        I_preds = pd.read_csv(os.path.join("predictions", "Import_tube_predictions.csv"))
+        E_preds = pd.read_csv(os.path.join("predictions", "Export_tube_predictions.csv"))
+        plot_tube_predictions(
+            trace_real=self.dataset[cfg.GDP_COL+" const"].to_list(),
+            traces_predicted=np.array(Y_preds),
+            title="GDP tube predictions",
+            x_label="Time",
+            y_label="GDP",
+            save_path="img/GDP_tube_predictions"
+        )
+        plot_tube_predictions(
+            trace_real=self.dataset[cfg.IMPORT_COL+" const"].to_list(),
+            traces_predicted=np.array(I_preds),
+            title="Import tube predictions",
+            x_label="Time",
+            y_label="Import",
+            save_path="img/Import_tube_predictions"
+        )
+        plot_tube_predictions(
+            trace_real=self.dataset[cfg.EXPORT_COL+" const"].to_list(),
+            traces_predicted=np.array(E_preds),
+            title="Export tube predictions",
+            x_label="Time",
+            y_label="Export",
+            save_path="img/Export_tube_predictions"
         )
 
         logging.info("Pipeline done!")

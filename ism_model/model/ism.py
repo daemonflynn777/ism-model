@@ -7,6 +7,7 @@ import pandas as pd
 import numpy as np
 import math
 from sklearn.linear_model import LinearRegression
+import alphashape
 
 from ism_model import config as cfg
 from ism_model.utils.dataset import Data
@@ -131,6 +132,31 @@ class Model():
         LinReg.fit(X, y)
         pred = LinReg.predict(X)
         return pred
+
+    @staticmethod
+    def create_shell(points: np.array, alpha: float):
+        # aalpha = 0.95 * alphashape.optimizealpha(points)
+        hull = alphashape.alphashape(points, alpha)
+        hull_pts = hull.exterior.coords.xy
+        return hull_pts
+
+    @staticmethod
+    def calc_pareto_front(points: np.array, return_mask: bool = True):
+        is_efficient = np.arange(points.shape[0])
+        n_points = points.shape[0]
+        next_point_index = 0  # Next index in the is_efficient array to search for
+        while next_point_index < len(points):
+            nondominated_point_mask = np.any(points < points[next_point_index], axis=1)
+            nondominated_point_mask[next_point_index] = True
+            is_efficient = is_efficient[nondominated_point_mask]  # Remove dominated points
+            points = points[nondominated_point_mask]
+            next_point_index = np.sum(nondominated_point_mask[:next_point_index])+1
+        if return_mask:
+            is_efficient_mask = np.zeros(n_points, dtype=bool)
+            is_efficient_mask[is_efficient] = True
+            return is_efficient_mask
+        else:
+            return is_efficient
 
     def set_static_params(self, sigma: float, delta: float, rho: float) -> None:
         self.sigma = sigma
