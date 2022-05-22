@@ -83,19 +83,20 @@ class Pipeline:
                     K_0=self.dataset[cfg.GDP_COL+" const"][0]/params_df["alpha_k"][ind]
                 )
                 I_t = self.model.calc_import(
-                    rho=self.model.rho,
-                    delta=self.model.delta,
+                    rho=self.dataset["rho"][t],
+                    delta=self.dataset["delta"][t],
                     Y=Y_t,
                     pi_i=self.dataset["pi_i preds"][t]
                 )
                 E_t = self.model.calc_export(
-                    delta=self.model.delta,
+                    delta=self.dataset["delta"][t],
                     Y=Y_t,
                     pi_e=self.dataset["pi_e preds"][t]
                 )
                 J_t = self.model.calc_investments(
-                    rho=self.model.rho,
-                    delta=self.model.delta,
+                    sigma=self.dataset["sigma"][t],
+                    rho=self.dataset["rho"][t],
+                    delta=self.dataset["delta"][t],
                     Y=Y_t,
                     pi_j=self.dataset["pi_j preds"][t]
                 )
@@ -210,26 +211,35 @@ class Pipeline:
         )
 
         logging.info("Calculating sigma, delta and rho")
-        sigma_mean, sigma_std = self.model.calc_sigma(
+        sigma = self.model.calc_sigma(
             pi_j_list=self.dataset["pi_j preds"],
             J_list=self.dataset[cfg.INVESTMENTS_COL],
             Y_list=self.dataset[cfg.GDP_COL],
             pi_i_list=self.dataset["pi_i preds"],
             Imp_list=self.dataset[cfg.IMPORT_COL]
         )
-        delta_mean, delta_std = self.model.calc_delta(
+        sigma_preds = self.model.fit_coeffs(sigma)
+        self.dataset["sigma"] = sigma_preds
+        # print(sigma, sigma_preds)
+        delta = self.model.calc_delta(
             pi_e_list=self.dataset["pi_e preds"],
             E_list=self.dataset[cfg.EXPORT_COL],
             Y_list=self.dataset[cfg.GDP_COL]
         )
-        rho_mean, rho_std = self.model.calc_rho(
+        delta_preds = self.model.fit_coeffs(delta)
+        self.dataset["delta"] = delta_preds
+        # print(delta, delta_preds)
+        rho = self.model.calc_rho(
             pi_i_list=self.dataset["pi_i preds"],
             Imp_list=self.dataset[cfg.IMPORT_COL],
             Y_list=self.dataset[cfg.GDP_COL],
             pi_e_list=self.dataset["pi_e preds"],
             E_list=self.dataset[cfg.EXPORT_COL]
         )
-        self.model.set_static_params(sigma=sigma_mean, delta=delta_mean, rho=rho_mean)
+        rho_preds = self.model.fit_coeffs(rho)
+        self.dataset["rho"] = rho_preds
+        # print(rho, rho_preds)
+        # self.model.set_static_params(sigma=sigma_mean, delta=delta_mean, rho=rho_mean)
 
         logging.info("Creating mesh grid for model's params")
         self.params_set = self.model.create_params_set(

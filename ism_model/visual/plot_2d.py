@@ -46,12 +46,14 @@ def plot_metrics(
     ax.scatter(
         x=not_pareto_points_x,
         y=not_pareto_points_y,
-        c='purple'
+        c='red',
+        s=25
     )
     ax.scatter(
         x=pareto_points_x,
         y=pareto_points_y,
-        c='red'
+        c='green',
+        s=25
     )
     plt.xlabel(x_label)
     plt.ylabel(y_label)

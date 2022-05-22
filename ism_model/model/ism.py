@@ -59,8 +59,8 @@ class Model():
 
     @staticmethod
     def calc_gdp(Y_0: float, a: float, b: float, L: float, L_0: float, K: float, K_0: float) -> float:
-        labour = (L/L_0)**(-b)
-        capital = (K/K_0)**(-b)
+        labour = (L/L_0)**(-b+1e-8)
+        capital = (K/K_0)**(-b+1e-8)
         return Y_0*((a*labour + (1-a)*capital)**(-1/(b+1e-8)))
 
     @staticmethod
@@ -76,8 +76,12 @@ class Model():
         return rho*(1-delta)*Y/pi_i
 
     @staticmethod
-    def calc_investments(rho: float, delta: float, Y: float, pi_j: float) -> float:
-        return rho*(1-delta)*Y/pi_j
+    def calc_investments(sigma: float, rho: float, delta: float, Y: float, pi_j: float) -> float:
+        return sigma*(1 + rho*(1 - delta))*Y/pi_j
+
+    # @staticmethod
+    # def calc_investments(rho: float, delta: float, Y: float, pi_j: float) -> float:
+    #     return rho*(1-delta)*Y/pi_j
 
     @staticmethod
     def calc_sigma(pi_j_list: List[float], J_list: List[float],
@@ -85,14 +89,14 @@ class Model():
         sigma = [
             (pi_j*J)/(Y + pi_i*Imp) for pi_j, J, Y, pi_i, Imp in zip(pi_j_list, J_list, Y_list, pi_i_list, Imp_list)
         ]
-        return np.mean(sigma), np.std(sigma)
+        return sigma
 
     @staticmethod
     def calc_delta(pi_e_list: List[float], E_list: List[float], Y_list: List[float]):
         delta = [
             pi_e*E/Y for pi_e, E, Y in zip(pi_e_list, E_list, Y_list)
         ]
-        return np.mean(delta), np.std(delta)
+        return delta
 
     @staticmethod
     def calc_rho(pi_i_list: List[float], Imp_list: List[float],
@@ -100,7 +104,16 @@ class Model():
         rho = [
             (pi_i*Imp)/(Y - pi_e*E) for pi_i, Imp, Y, pi_e, E in zip(pi_i_list, Imp_list, Y_list, pi_e_list, E_list)
         ]
-        return np.mean(rho), np.std(rho)
+        return rho
+
+    @staticmethod
+    def fit_coeffs(data: List[float]):
+        LinReg = LinearRegression(n_jobs=-1)
+        y = np.array(data)
+        X = np.arange(len(data)).reshape(-1, 1)
+        LinReg.fit(X, y)
+        pred = LinReg.predict(X)
+        return pred
 
     @staticmethod
     def fit_labour(self, data: List[float]):
