@@ -49,13 +49,15 @@ class Pipeline:
         data["pi_e"] = data["p_e"]/data["p_y"]
         return data
 
-    @staticmethod
-    def save_tube_predictions(data: np.array, name: str) -> None:
+    def save_tube_predictions(self, data: np.array, name: str) -> None:
         df = pd.DataFrame(
             data=data,
             columns=[str(i) for i in range(data.shape[1])]
         )
-        df.to_csv(os.path.join("predictions", f"{name}_tube_predictions.csv"), index=False)
+        df.to_csv(
+            os.path.join(self.tech_params["base_dir"], "predictions", f"{name}_tube_predictions.csv"),
+            index=False
+        )
 
     def inference(self, params_df: pd.DataFrame,  # data_df: pd.DataFrame,
                   return_predictions: bool = False) -> List[List[Union[float, int]]]:
@@ -165,7 +167,7 @@ class Pipeline:
             title="Labour curve",
             x_label="Time",
             y_label="Labour",
-            save_path="img/labour_curve.jpeg"
+            save_path=f"{self.tech_params['base_dir']}/img/labour_curve.jpeg"
         )
 
         logging.info("Fitting import price index")
@@ -179,7 +181,7 @@ class Pipeline:
             title="Import price index curve",
             x_label="Time",
             y_label="Import price index",
-            save_path="img/import_price_index_curve.jpeg"
+            save_path=f"{self.tech_params['base_dir']}/img/import_price_index_curve.jpeg"
         )
 
         logging.info("Fitting export price index")
@@ -193,7 +195,7 @@ class Pipeline:
             title="Export price index curve",
             x_label="Time",
             y_label="Export price index",
-            save_path="img/export_price_index_curve.jpeg"
+            save_path=f"{self.tech_params['base_dir']}/img/export_price_index_curve.jpeg"
         )
 
         logging.info("Fitting investments price index")
@@ -207,7 +209,7 @@ class Pipeline:
             title="Invesments price index curve",
             x_label="Time",
             y_label="Invesments price index",
-            save_path="img/invesments_price_index_curve.jpeg"
+            save_path=f"{self.tech_params['base_dir']}/img/invesments_price_index_curve.jpeg"
         )
 
         logging.info("Calculating sigma, delta and rho")
@@ -268,6 +270,10 @@ class Pipeline:
         logging.info("Calculating pareto front")
         pareto_mask = self.model.calc_pareto_front(metrics_arr)
         self.params_set["pareto_mask"] = pareto_mask
+        self.params_set.to_csv(
+            os.path.join(self.tech_params["base_dir"], "predictions", "Metrics.csv"),
+            index=False
+        )
         pareto_points = self.params_set[self.params_set["pareto_mask"] == True]
         not_pareto_points = self.params_set[self.params_set["pareto_mask"] == False]
         # metrics_arr = [(point[0], point[1]) for point in metrics_arr]
@@ -280,7 +286,7 @@ class Pipeline:
             title="Metrics",
             x_label="1 - corr_metrics",
             y_label="MAPE_metrics",
-            save_path="img/metrics.jpeg"
+            save_path=f"{self.tech_params['base_dir']}/img/metrics.jpeg"
         )
 
         logging.info("Calculating preidctions tube using pareto front")
@@ -288,16 +294,16 @@ class Pipeline:
         pool = mp.Pool(self.model_params['n_threads'])
         results = [pool.apply_async(self.inference, args=(df, True, )).get() for df in params_splitted]
         pool.close()
-        Y_preds = pd.read_csv(os.path.join("predictions", "GDP_tube_predictions.csv"))
-        I_preds = pd.read_csv(os.path.join("predictions", "Import_tube_predictions.csv"))
-        E_preds = pd.read_csv(os.path.join("predictions", "Export_tube_predictions.csv"))
+        Y_preds = pd.read_csv(os.path.join(self.tech_params["base_dir"], "predictions", "GDP_tube_predictions.csv"))
+        I_preds = pd.read_csv(os.path.join(self.tech_params["base_dir"], "predictions", "Import_tube_predictions.csv"))
+        E_preds = pd.read_csv(os.path.join(self.tech_params["base_dir"], "predictions", "Export_tube_predictions.csv"))
         plot_tube_predictions(
             trace_real=self.dataset[cfg.GDP_COL+" const"].to_list(),
             traces_predicted=np.array(Y_preds),
             title="GDP tube predictions",
             x_label="Time",
             y_label="GDP",
-            save_path="img/GDP_tube_predictions"
+            save_path=f"{self.tech_params['base_dir']}/img/GDP_tube_predictions"
         )
         plot_tube_predictions(
             trace_real=self.dataset[cfg.IMPORT_COL+" const"].to_list(),
@@ -305,7 +311,7 @@ class Pipeline:
             title="Import tube predictions",
             x_label="Time",
             y_label="Import",
-            save_path="img/Import_tube_predictions"
+            save_path=f"{self.tech_params['base_dir']}/img/Import_tube_predictions"
         )
         plot_tube_predictions(
             trace_real=self.dataset[cfg.EXPORT_COL+" const"].to_list(),
@@ -313,7 +319,7 @@ class Pipeline:
             title="Export tube predictions",
             x_label="Time",
             y_label="Export",
-            save_path="img/Export_tube_predictions"
+            save_path=f"{self.tech_params['base_dir']}/img/Export_tube_predictions"
         )
 
         logging.info("Pipeline done!")

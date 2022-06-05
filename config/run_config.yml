@@ -1,5 +1,6 @@
 tech:
-  data_dir: "../data"
+  data_dir: "/Users/nikita.denisov/Documents/Personal/ВМК/Курсовая/data"
+  base_dir: "/Users/nikita.denisov/Documents/Personal/ВМК/Курсовая/ism-model"
 
 data:
   file: canada_dataset.xls

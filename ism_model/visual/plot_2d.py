@@ -1,3 +1,4 @@
+from cProfile import label
 import matplotlib.pyplot as plt
 from typing import List, Dict
 import numpy as np
@@ -46,17 +47,21 @@ def plot_metrics(
     ax.scatter(
         x=not_pareto_points_x,
         y=not_pareto_points_y,
-        c='red',
-        s=25
+        c='orange',
+        s=25,
+        label="Not Pareto front"
     )
     ax.scatter(
         x=pareto_points_x,
         y=pareto_points_y,
         c='green',
-        s=25
+        s=35,
+        marker="P",
+        label="Pareto front"
     )
     plt.xlabel(x_label)
     plt.ylabel(y_label)
+    plt.legend()
     plt.savefig(save_path)
     return None
 
@@ -76,9 +81,17 @@ def plot_tube_predictions(
     plt.plot(
         x,
         trace_real,
-        color='red'
+        color='red',
+        label="Real"
     )
-    for trace in traces_predicted:
+    plt.plot(
+            x,
+            traces_predicted[0:1, :].reshape(-1,),
+            color='orange',
+            alpha=0.25,
+            label="Prediction"
+        )
+    for trace in traces_predicted[1:, :]:
         plt.plot(
             x,
             trace,
@@ -87,5 +100,6 @@ def plot_tube_predictions(
         )
     plt.xlabel(x_label)
     plt.ylabel(y_label)
+    plt.legend()
     plt.savefig(save_path)
     pass
