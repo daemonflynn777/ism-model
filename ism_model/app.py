@@ -31,8 +31,6 @@ class Pipeline:
         self.data_params = self.params["data"]
         self.model_params = self.params["model"]
 
-        # self.model = Model()
-
     def load_dataset(self):
         data = Data(
             source_file=os.path.join(
@@ -59,7 +57,7 @@ class Pipeline:
             index=False
         )
 
-    def inference(self, params_df: pd.DataFrame,  # data_df: pd.DataFrame,
+    def inference(self, params_df: pd.DataFrame,
                   return_predictions: bool = False) -> List[List[Union[float, int]]]:
         res = []
         if return_predictions:
@@ -173,8 +171,6 @@ class Pipeline:
         logging.info("Fitting import price index")
         pi_i_preds = self.model.fit_polinominal(self.dataset["pi_i"].to_list(), 7)
         self.dataset["pi_i preds"] = pi_i_preds
-        # a_i, b_i = self.model.fit_exponential(self.dataset["pi_i"].to_list())
-        # pi_i_preds = [a_i*math.exp(b_i*t) for t in range(self.dataset.shape[0])]
         plot_time_series(
             data_y={"Predicted": pi_i_preds, "Real": self.dataset["pi_i"].to_list()},
             colors=["blue", "green"],
@@ -187,8 +183,6 @@ class Pipeline:
         logging.info("Fitting export price index")
         pi_e_preds = self.model.fit_polinominal(self.dataset["pi_e"].to_list(), 7)
         self.dataset["pi_e preds"] = pi_e_preds
-        # a_e, b_e = self.model.fit_exponential(self.dataset["pi_e"].to_list())
-        # pi_e_preds = [a_e*math.exp(b_e*t) for t in range(self.dataset.shape[0])]
         plot_time_series(
             data_y={"Predicted": pi_e_preds, "Real": self.dataset["pi_e"].to_list()},
             colors=["blue", "green"],
@@ -201,8 +195,6 @@ class Pipeline:
         logging.info("Fitting investments price index")
         pi_j_preds = self.model.fit_polinominal(self.dataset["pi_j"].to_list(), 7)
         self.dataset["pi_j preds"] = pi_j_preds
-        # a_j, b_j = self.model.fit_exponential(self.dataset["pi_j"].to_list())
-        # pi_j_preds = [a_j*math.exp(b_j*t) for t in range(self.dataset.shape[0])]
         plot_time_series(
             data_y={"Predicted": pi_j_preds, "Real": self.dataset["pi_j"].to_list()},
             colors=["blue", "green"],
@@ -222,7 +214,6 @@ class Pipeline:
         )
         sigma_preds = self.model.fit_coeffs(sigma)
         self.dataset["sigma"] = sigma_preds
-        # print(sigma, sigma_preds)
         delta = self.model.calc_delta(
             pi_e_list=self.dataset["pi_e preds"],
             E_list=self.dataset[cfg.EXPORT_COL],
@@ -230,7 +221,6 @@ class Pipeline:
         )
         delta_preds = self.model.fit_coeffs(delta)
         self.dataset["delta"] = delta_preds
-        # print(delta, delta_preds)
         rho = self.model.calc_rho(
             pi_i_list=self.dataset["pi_i preds"],
             Imp_list=self.dataset[cfg.IMPORT_COL],
@@ -240,8 +230,6 @@ class Pipeline:
         )
         rho_preds = self.model.fit_coeffs(rho)
         self.dataset["rho"] = rho_preds
-        # print(rho, rho_preds)
-        # self.model.set_static_params(sigma=sigma_mean, delta=delta_mean, rho=rho_mean)
 
         logging.info("Creating mesh grid for model's params")
         self.params_set = self.model.create_params_set(
@@ -276,8 +264,6 @@ class Pipeline:
         )
         pareto_points = self.params_set[self.params_set["pareto_mask"] == True]
         not_pareto_points = self.params_set[self.params_set["pareto_mask"] == False]
-        # metrics_arr = [(point[0], point[1]) for point in metrics_arr]
-        # shell_arr = np.array(self.model.create_shell(metrics_arr, self.model_params["convex_alpha"]))
         plot_metrics(
             pareto_points_x=pareto_points["corr_metrics"].to_list(),
             pareto_points_y=pareto_points["MAPE_metrics"].to_list(),

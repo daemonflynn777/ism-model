@@ -14,7 +14,6 @@ def RMSPE(prediction: List[Union[int, float]], real: List[Union[int, float]]) ->
 
 
 def MAPE(prediction: List[Union[int, float]], real: List[Union[int, float]]):
-    # return sum([abs(a-b)/b for a, b in zip(prediction, real)])/len(real)
     return mean_absolute_percentage_error(real, prediction)
 
 

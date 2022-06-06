@@ -46,17 +46,6 @@ class Model():
         )
         return grid_df
 
-    # @staticmethod
-    # def calc_gdp(self, a: float, K: float, L: float, gamma: float, alpha_k: float) -> float:
-    #     # return self.Y_0*(a*((K*alpha_k/self.Y_0)**(-gamma)) + (1-a)*((L/self.L_0)**(-gamma)))**(-1/gamma)
-    #     return (a*(K**(-gamma)) + (1-a)*(L**(-gamma)))**(-1/gamma)
-
-    # def calc_labor(self, n: float, t: int) -> int:
-    #     return self.L_0*math.exp(n*t)
-
-    # def calc_capital(self, s: float, Y: float, delta: float, n: float, K: float) -> float:
-    #     return s*Y + (1 - delta - n)*K
-
     @staticmethod
     def calc_gdp(Y_0: float, a: float, b: float, L: float, L_0: float, K: float, K_0: float) -> float:
         labour = (L/L_0)**(-b+1e-8)
@@ -78,10 +67,6 @@ class Model():
     @staticmethod
     def calc_investments(sigma: float, rho: float, delta: float, Y: float, pi_j: float) -> float:
         return sigma*(1 + rho*(1 - delta))*Y/pi_j
-
-    # @staticmethod
-    # def calc_investments(rho: float, delta: float, Y: float, pi_j: float) -> float:
-    #     return rho*(1-delta)*Y/pi_j
 
     @staticmethod
     def calc_sigma(pi_j_list: List[float], J_list: List[float],
@@ -130,7 +115,6 @@ class Model():
         X = np.arange(len(data)).reshape(-1, 1)
         LinReg.fit(X, y)
         return math.exp(LinReg.intercept_), LinReg.coef_[0]
-        # return LinReg.intercept_, LinReg.coef_[0]
 
     @staticmethod
     def fit_polinominal(data: List[float], power: int):
@@ -148,7 +132,6 @@ class Model():
 
     @staticmethod
     def create_shell(points: np.array, alpha: float):
-        # aalpha = 0.95 * alphashape.optimizealpha(points)
         hull = alphashape.alphashape(points, alpha)
         hull_pts = hull.exterior.coords.xy
         return hull_pts
